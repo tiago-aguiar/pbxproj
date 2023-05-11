@@ -2,7 +2,7 @@
 //  ContentView.swift
 //  {{project_name}}
 //
-//  Created by Tiago Aguiar on {{date}}
+//  Created by Tiago Aguiar on {{date}}.
 //
 
 import SwiftUI

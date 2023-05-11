@@ -30,15 +30,12 @@ void create_dir(char *result, const char *root, const char *path)
     memmove(result, absolute_path, sizeof(absolute_path));
 }
 
-void replace_template(char *str, const char *old_key, const char *new_string)
+void search_pattern(char *buf, const Dict dicts[], const size_t n)
 {
-    // TODO: @Cleanup - Precisamos evitar duas chamadas aqui.
-    // Fazer a verificação em um único loop das chaves e valores.
-    // FIXME: - Não funciona quando temos diferentes keys na mesma linha!!
-    char *begin = strchr(str, '{');
+    char *begin = strchr(buf, '{');
     if (begin == NULL) return;
-    
-    if (begin[1] == '{') {
+
+    if (begin != NULL && begin[1] == '{') {
         begin += 2;
         char *end = strchr(begin, '}');
 
@@ -47,29 +44,25 @@ void replace_template(char *str, const char *old_key, const char *new_string)
             char identifier[255] = "";
             strncpy(identifier, begin, strlen(begin) - strlen(end));
 
-            if (strcmp(identifier, old_key) == 0) { // find key
-                char new_line[255] = "";
-                strncat(new_line, str, strlen(str) - strlen(begin) - 2);
-                strncat(new_line, new_string, strlen(new_string));
-                strncat(new_line, end + 2, strlen(end));
-                strcpy(str, new_line);
+            for (size_t i = 0; i < n; ++i) {
+                Dict d = dicts[i];
 
-                replace_template(str, old_key, new_string);
+                if (strcmp(identifier, d.key) == 0) { // find key
+                    char new_line[255] = "";
+                    strncat(new_line, buf, strlen(buf) - strlen(begin) - 2);
+                    strncat(new_line, d.value, strlen(d.value));
+                    strncat(new_line, end + 2, strlen(end));
+                    strcpy(buf, new_line);
+
+                    break;
+
+                }
             }
-            /*
-            char tmp_end[127] = "";
 
-            strcpy(tmp_end, end + 2);
-
-            if (strcmp(identifier, old_key) == 0) { // find key
-                memset(begin - 2, '\0', strlen(str));
-                memmove(begin - 2, new_string, strlen(new_string));
-                memmove(str + strlen(str), tmp_end, strlen(tmp_end));
-            }
-            */
+            search_pattern(begin+1, dicts, n);
         }
     } else {
-        replace_template(begin+1, old_key, new_string);
+        search_pattern(begin+1, dicts, n);
     }
 }
 
@@ -105,10 +98,7 @@ void write_template(FILE *src, FILE *dest, const Dict dicts[], const size_t n)
             }
             line_count++;
 
-            for (size_t i = 0; i < n; ++i) {
-                Dict d = dicts[i];
-                replace_template(buf, d.key, d.value);
-            }
+            search_pattern(buf, dicts, n);
 
             fputs(buf, dest);
         }
